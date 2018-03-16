@@ -4,6 +4,7 @@ import {
   StyleSheet,
   Text,
   View,
+  Keyboard,
 } from 'react-native';
 
 import {GiftedChat, Actions, Bubble, SystemMessage} from 'react-native-gifted-chat';
@@ -18,6 +19,7 @@ export default class Example extends React.Component {
       loadEarlier: true,
       typingText: null,
       isLoadingEarlier: false,
+      toolbarMenuIsOpen: false,
     };
 
     this._isMounted = false;
@@ -29,6 +31,9 @@ export default class Example extends React.Component {
     this.renderFooter = this.renderFooter.bind(this);
     this.onLoadEarlier = this.onLoadEarlier.bind(this);
 
+    this.onKeyboardWillShow = this.onKeyboardWillShow.bind(this);
+    this.onKeyboardWillHide = this.onKeyboardWillHide.bind(this);
+
     this._isAlright = null;
   }
 
@@ -39,10 +44,22 @@ export default class Example extends React.Component {
         messages: require('./data/messages.js'),
       };
     });
+    this.keyboardWillShowListener = Keyboard.addListener('keyboardDidShow', this.onKeyboardWillShow);
+    this.keyboardWillHideListener = Keyboard.addListener('keyboardDidHide', this.onKeyboardWillHide);
   }
 
   componentWillUnmount() {
     this._isMounted = false;
+    this.keyboardWillShowListener.remove();
+    this.keyboardWillHideListener.remove();
+  }
+
+  onKeyboardWillShow() {
+    this.setState({ toolbarMenuIsOpen: true, keyboardIsOpen: true });
+  }
+
+  onKeyboardWillHide() {
+    this.setState({ keyboardIsOpen: false });
   }
 
   onLoadEarlier() {
@@ -204,6 +221,7 @@ export default class Example extends React.Component {
   render() {
     return (
       <GiftedChat
+        isAnimated={true}
         messages={this.state.messages}
         onSend={this.onSend}
         loadEarlier={this.state.loadEarlier}
@@ -219,10 +237,29 @@ export default class Example extends React.Component {
         renderSystemMessage={this.renderSystemMessage}
         renderCustomView={this.renderCustomView}
         renderFooter={this.renderFooter}
+        renderAfterToolbarMenu={this.renderAfterToolbarMenu}
+        
+        afterToolbarProps={{
+          isOpen: this.state.toolbarMenuIsOpen,
+        }}
+        
+        listViewProps={{
+          onResponderMove: () => {
+            this.setState({ toolbarMenuIsOpen: false });
+            Keyboard.dismiss();
+          }
+        }}
       />
     );
   }
-}
+
+  renderAfterToolbarMenu(props) {
+    const { maxHeight, afterToolbarProps: { isOpen } } = props;
+    return (
+      <View style={[styles['addition-menu'], { maxHeight: maxHeight }]} />
+    )
+  }
+ }
 
 const styles = StyleSheet.create({
   footerContainer: {
@@ -235,4 +272,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#aaa',
   },
+  'addition-menu': {
+    width: '100%',
+    flex: 1,
+    backgroundColor: 'pink',
+    position: 'relative',
+  }
 });

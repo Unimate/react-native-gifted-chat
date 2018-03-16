@@ -115,9 +115,13 @@ class GiftedChat extends React.Component {
   }
 
   componentWillReceiveProps(nextProps = {}) {
-    const { messages, text } = nextProps;
+    const { messages, text,  } = nextProps;
     this.setMessages(messages || []);
     this.setTextFromProp(text);
+    if (nextProps.afterToolbarProps && nextProps.afterToolbarProps.isOpen === false) {
+        this.resetMessagesContainerHeight();
+    }
+
   }
 
   initLocale() {
@@ -247,6 +251,10 @@ class GiftedChat extends React.Component {
   }
 
   onKeyboardWillShow(e) {
+    if (this.props.renderAfterToolbarMenu && this.props.afterToolbarProps.isOpen) {
+      return;
+    }
+
     this.setIsTypingDisabled(true);
     this.setKeyboardHeight(e.endCoordinates ? e.endCoordinates.height : e.end.height);
     this.setBottomOffset(this.props.bottomOffset);
@@ -264,9 +272,14 @@ class GiftedChat extends React.Component {
   }
 
   onKeyboardWillHide() {
+    if (this.props.renderAfterToolbarMenu && this.props.afterToolbarProps.isOpen) {
+      return;
+    }
+
     this.setIsTypingDisabled(true);
     this.setKeyboardHeight(0);
     this.setBottomOffset(0);
+
     const newMessagesContainerHeight = this.getBasicMessagesContainerHeight();
     if (this.props.isAnimated === true) {
       Animated.timing(this.state.messagesContainerHeight, {
@@ -366,6 +379,14 @@ class GiftedChat extends React.Component {
     });
   }
 
+  resetMessagesContainerHeight() {
+    const messagesContainerHeight = this.getBasicMessagesContainerHeight();
+
+    this.setState({
+      messagesContainerHeight: this.prepareMessagesContainerHeight(messagesContainerHeight),
+    })
+  }
+
   focusTextInput() {
     if (this.textInput) {
       this.textInput.focus();
@@ -419,6 +440,9 @@ class GiftedChat extends React.Component {
 
   onMainViewLayout(e) {
     // fix an issue when keyboard is dismissing during the initialization
+    if (this.props.renderAfterToolbarMenu && this.props.afterToolbarProps.isOpen) {
+      return;
+    }
     const { layout } = e.nativeEvent;
     if (this.getMaxHeight() !== layout.height || this.getIsFirstLayout() === true) {
       this.setMaxHeight(layout.height);
@@ -455,6 +479,17 @@ class GiftedChat extends React.Component {
     );
   }
 
+  renderAfterToolbarMenu() {
+    const afterToolbarProps = {
+      ...this.props,
+      maxHeight: this.props.afterToolbarProps.isOpen === false ? 0 : this._keyboardHeight,
+    }
+    if (this.props.renderAfterToolbarMenu) {
+        return this.props.renderAfterToolbarMenu(afterToolbarProps);
+    }
+    return null;
+  }
+
   renderChatFooter() {
     if (this.props.renderChatFooter) {
       const footerProps = {
@@ -476,9 +511,12 @@ class GiftedChat extends React.Component {
     if (this.state.isInitialized === true) {
       return (
         <ActionSheet ref={(component) => (this._actionSheetRef = component)}>
-          <View style={styles.container} onLayout={this.onMainViewLayout}>
-            {this.renderMessages()}
-            {this.renderInputToolbar()}
+          <View style={styles.container}>
+            <View style={styles.container} onLayout={this.onMainViewLayout}>
+              {this.renderMessages()}
+              {this.renderInputToolbar()}
+            </View>
+            {this.renderAfterToolbarMenu()}
           </View>
         </ActionSheet>
       );
@@ -536,6 +574,9 @@ GiftedChat.defaultProps = {
   lightboxProps: {},
   textInputProps: {},
   listViewProps: {},
+  afterToolbarProps: {
+    isOpen: false,
+  },
   renderCustomView: null,
   renderDay: null,
   renderTime: null,
@@ -601,6 +642,7 @@ GiftedChat.propTypes = {
   bottomOffset: PropTypes.number,
   minInputToolbarHeight: PropTypes.number,
   listViewProps: PropTypes.object,
+  afterToolbarProps: PropTypes.object,
   keyboardShouldPersistTaps: PropTypes.oneOf(['always', 'never', 'handled']),
   onInputTextChanged: PropTypes.func,
   maxInputLength: PropTypes.number,
