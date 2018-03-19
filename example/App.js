@@ -30,6 +30,7 @@ export default class Example extends React.Component {
     this.renderSystemMessage = this.renderSystemMessage.bind(this);
     this.renderFooter = this.renderFooter.bind(this);
     this.onLoadEarlier = this.onLoadEarlier.bind(this);
+    this._repsponderMoveHandler = this._repsponderMoveHandler.bind(this);
 
     this.onKeyboardWillShow = this.onKeyboardWillShow.bind(this);
     this.onKeyboardWillHide = this.onKeyboardWillHide.bind(this);
@@ -244,10 +245,7 @@ export default class Example extends React.Component {
         }}
         
         listViewProps={{
-          onResponderMove: () => {
-            this.setState({ toolbarMenuIsOpen: false });
-            Keyboard.dismiss();
-          }
+          onResponderMove: this._repsponderMoveHandler,
         }}
       />
     );
@@ -258,6 +256,13 @@ export default class Example extends React.Component {
     return (
       <View style={[styles['addition-menu'], { maxHeight: maxHeight }]} />
     )
+  }
+
+  _repsponderMoveHandler() {
+    if (Platform.OS === 'ios') {
+      this.setState({ toolbarMenuIsOpen: false });
+      Keyboard.dismiss();
+    }
   }
  }
 
